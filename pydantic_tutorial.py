@@ -3,6 +3,8 @@ from datetime import datetime
 from pydantic import BaseModel, ValidationError
 
 print("--- Pydantic的基本用法 ---")
+
+
 class User(BaseModel):
     id: int  # 必填字段
     name: str = "John Snow"  # 有默认值，选填字段
@@ -24,3 +26,12 @@ except ValidationError as e:
     print(e.json())
 
 print("--- 模型类的属性和方法 ---")
+print(user.dict())
+print(user.json())
+print(user.copy())  # 浅拷贝
+print(User.parse_obj(obj=external_data))
+print(
+    User.parse_raw(
+        '{"id": 123, "name": "John Snow", "signup_ts": "2022-12-22T12:22:00", "friends": [1, 2, 3]}'
+    )
+)
