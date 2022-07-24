@@ -1,5 +1,5 @@
 from typing import Optional, Union, List
-from fastapi import APIRouter, status, Form
+from fastapi import APIRouter, status, Form, File, UploadFile, HTTPException
 from pydantic import BaseModel, EmailStr
 
 app04 = APIRouter()
@@ -72,3 +72,81 @@ async def status_code():
 async def status_attribute():
     print(type(status.HTTP_200_OK))
     return {"status_code": status.HTTP_200_OK}
+
+
+"""Form Data 表单数据处理"""
+
+
+@app04.post("/login")
+async def login(username: str = Form(...), password: str = Form(...)):  # 定义表单参数
+    """用Form类需要pip install python-multipart；Form类的元数据和校验方法类似Body/Query/Path/Cookie"""
+    return {"username": username}
+
+
+"""Request Files 单文件、多文件上传及参数详解"""
+
+
+@app04.post("/file")
+async def file_1(file: List[bytes] = File(...)):
+    """使用File类，文件内容会以bytes的形式读入内存，适合于上传小文件"""
+    return {"file_size": len(file)}
+
+
+@app04.post("/upload_files")
+async def upload_files(files: List[UploadFile] = File(...)):
+    """使用UploadFile类优势：
+    1.文件存储在内存中，使用的内存达到阈值后，将被保存在磁盘中
+    2.适合于图片、视频大文件
+    3.可以获取上传的文件的元数据，如文件名，创建时间等
+    4.有文件对象的异步接口
+    5.上传的文件是Python文件对象，可以使用write()，read()，seek()，close()操作
+    """
+    for file in files:
+        contents = await file.read()
+        print(contents)
+    return {"filename": files[0].filename, "content_type": files[0].content_type}
+
+
+"""【见run.py】FastAPI项目的静态文件配置"""
+
+"""Path Operation Configuration 路径操作配置"""
+
+
+@app04.post(
+    "/path_operation_configuration",
+    response_model=UserOut,
+    # tags=["Path", "Operation", "Configuration"],
+    summary="This is summary",
+    description="This is description",
+    response_description="This is response description",
+    # deprecated=True,
+    status_code=status.HTTP_200_OK,
+)
+async def path_operation_configuration(user: UserIn):
+    """
+    Path Operation Configuration 路径操作配置
+    :param user:用户信息
+    :return：返回结果
+    """
+    return user.dict()
+
+
+"""【见run.py】FastAPI应用的常见配置项"""
+
+"""Handling Errors错误处理"""
+
+
+@app04.get("/http_exception")
+async def http_exception(city: str):
+    if city != "Beijing":
+        raise HTTPException(
+            status_code=404, detail="City not found!", headers={"X-Error": "Error"}
+        )
+    return {"city": city}
+
+
+@app04.get("/http_exception/{city_id}")
+async def override_http_exception(city_id: int):
+    if city_id == 1:
+        raise HTTPException(status_code=418, detail="Nope! I don't like 1.")
+    return {"city_id": city_id}
