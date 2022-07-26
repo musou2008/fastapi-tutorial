@@ -71,7 +71,61 @@ async def sub_dependency(final_query: str = Depends(sub_query, use_cache=True)):
 
 
 async def verify_token(x_token: str = Header(...)):
-    """没有返回值的依赖"""
+    """没有返回值的子依赖"""
     if x_token != "fake-super-secret-token":
         raise HTTPException(status_code=400, detail="X-Token header invalid")
     return x_token
+
+
+async def verify_key(x_key: str = Header(...)):
+    """有返回值的子依赖，但是返回值不会被调用"""
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
+
+@app05.get(
+    "/dependency_in_path_operation",
+    dependencies=[Depends(verify_token), Depends(verify_key)],
+)  # 这时候不是在函数参数中调用依赖，而是在路径操作参数中调用依赖
+async def dependency_in_path_operation():
+    return [{"user": "user01"}, {"user": "user02"}]
+
+
+"""Global Dependencies 全局依赖"""
+# app05 = APIRouter(dependencies=[Depends(verify_token), Depends(verify_key)]) 可以写在主程序里
+
+"""Dependencies with yield 带yield的依赖"""
+# 以下是伪代码
+
+
+async def get_db():
+    db = "db_connection"
+    try:
+        yield db
+    finally:
+        db.endswith("db_close")
+
+
+async def dependency_a():
+    dep_a = "generate_dep_a()"
+    try:
+        yield dep_a
+    finally:
+        dep_a.endswith("db_close")
+
+
+async def dependency_b(dep_a=Depends(dependency_a)):
+    dep_b = "generate_dep_b()"
+    try:
+        yield dep_b
+    finally:
+        dep_b.endswith(dep_a)
+
+
+async def dependency_c(dep_b=Depends(dependency_b)):
+    dep_c = "generate_dep_c()"
+    try:
+        yield dep_c
+    finally:
+        dep_c.endswith(dep_b)
