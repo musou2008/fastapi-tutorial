@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordBearer
+from pydantic import BaseModel
+from typing import Optional
 
 app06 = APIRouter()
 
@@ -21,3 +23,30 @@ async def oauth2_password_bearer(token: str = Depends(oauth2_schema)):
 
 
 """基于 Password 和 Bearer token 的 OAuth2 认证"""
+fake_users_db = {
+    "john snow": {
+        "username": "john snow",
+        "full_name": "John Snow",
+        "email": "johnsnow@example.com",
+        "hashed_password": "fakehashedsecret",
+        "disabled": False,
+    },
+    "alice": {
+        "username": "alice",
+        "full_name": "Alice Wonderson",
+        "email": "alice@example.com",
+        "hashed_password": "fakehashedsecret2",
+        "disabled": True,
+    },
+}
+
+
+def fake_hash_password(password: str):
+    return "fakehashed" + password
+
+
+class User(BaseModel):
+    username: str
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    disabled: Optional[bool] = None
